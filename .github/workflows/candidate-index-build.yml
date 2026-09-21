@@ -1,0 +1,33 @@
+name: Public candidate index build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/public_candidate_index_build.py"
+      - ".github/workflows/candidate-index-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Frozen PubChem + COCONUT candidate index
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install public-source client
+        run: pip install "requests==2.32.5"
+      - name: Build deterministic mass-bucket candidate indexes
+        run: python tools/public_candidate_index_build.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: candidate-index-build-receipt
+          path: results/candidate-index-build-receipt.json
+          if-no-files-found: error
