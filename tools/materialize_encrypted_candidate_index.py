@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 import shutil
+import sys
 import tarfile
 from pathlib import Path
 
@@ -106,6 +107,7 @@ def load_builder():
     spec = importlib.util.spec_from_file_location("accepted_candidate_builder", path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
