@@ -243,7 +243,7 @@ def build_pubchem(session: requests.Session, root: Path) -> dict:
                 mono,
                 [
                     str(cid),
-                    f"{mono:.10f}",
+                    mono_text,
                     formula,
                     smiles,
                     accurate_text,
@@ -369,7 +369,7 @@ def build_coconut(session: requests.Session, root: Path) -> dict:
                         mass,
                         [
                             row["identifier"],
-                            f"{mass:.10f}",
+                            row["exact_molecular_weight"],
                             row["molecular_formula"],
                             row["canonical_smiles"],
                             row["standard_inchi_key"],
