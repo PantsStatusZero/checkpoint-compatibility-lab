@@ -121,38 +121,57 @@ class GzipTSVStream:
 
 
 class MassBucketWriter:
+    BUFFER_BYTES = 1024 * 1024
+
     def __init__(self, root: Path, source: str):
         self.root = root / source.lower()
         self.root.mkdir(parents=True, exist_ok=True)
         self.source = source
         self.handles: dict[int, tuple[object, gzip.GzipFile]] = {}
+        self.buffers: dict[int, bytearray] = {}
         self.stats: dict[int, dict] = {}
 
     def _bucket(self, mass: float) -> int:
         return int(math.floor(mass / BIN_WIDTH_DA) * BIN_WIDTH_DA)
 
+    def _ensure(self, bucket: int) -> None:
+        if bucket in self.handles:
+            return
+        path = self.root / f"mass-{bucket:04d}-{bucket + BIN_WIDTH_DA:04d}.tsv.gz"
+        raw = path.open("wb")
+        gz = gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=6, mtime=0)
+        self.handles[bucket] = (raw, gz)
+        self.buffers[bucket] = bytearray()
+        self.stats[bucket] = {
+            "bucket_min_da": bucket,
+            "bucket_max_da_exclusive": bucket + BIN_WIDTH_DA,
+            "path": str(path),
+            "row_count": 0,
+            "logical_sha256_state": hashlib.sha256(),
+        }
+
+    def _flush(self, bucket: int) -> None:
+        buf = self.buffers[bucket]
+        if not buf:
+            return
+        self.handles[bucket][1].write(buf)
+        buf.clear()
+
     def write(self, mass: float, fields: list[str]) -> None:
         bucket = self._bucket(mass)
-        if bucket not in self.handles:
-            path = self.root / f"mass-{bucket:04d}-{bucket + BIN_WIDTH_DA:04d}.tsv.gz"
-            raw = path.open("wb")
-            gz = gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=6, mtime=0)
-            self.handles[bucket] = (raw, gz)
-            self.stats[bucket] = {
-                "bucket_min_da": bucket,
-                "bucket_max_da_exclusive": bucket + BIN_WIDTH_DA,
-                "path": str(path),
-                "row_count": 0,
-                "logical_sha256_state": hashlib.sha256(),
-            }
-        raw, gz = self.handles[bucket]
+        self._ensure(bucket)
         line = ("\t".join(safe_text(x) for x in fields) + "\n").encode("utf-8")
-        gz.write(line)
+        buf = self.buffers[bucket]
+        buf.extend(line)
+        if len(buf) >= self.BUFFER_BYTES:
+            self._flush(bucket)
         stat = self.stats[bucket]
         stat["row_count"] += 1
         stat["logical_sha256_state"].update(line)
 
     def close(self) -> list[dict]:
+        for bucket in list(self.handles):
+            self._flush(bucket)
         for raw, gz in self.handles.values():
             gz.close()
             raw.close()
@@ -204,6 +223,8 @@ def build_pubchem(session: requests.Session, root: Path) -> dict:
             continue
 
         joined += 1
+        if joined % 5_000_000 == 0:
+            print(f"PUBCHEM_PROGRESS joined={joined:,} emitted={emitted:,}", flush=True)
         cid = s.cid
         smiles = s.fields[0] if s.fields else ""
         formula = m.fields[0] if len(m.fields) >= 1 else ""
@@ -334,6 +355,8 @@ def build_coconut(session: requests.Session, root: Path) -> dict:
                 out_of_range = 0
                 for row in reader:
                     total += 1
+                    if total % 1_000_000 == 0:
+                        print(f"COCONUT_PROGRESS rows={total:,} emitted={emitted:,}", flush=True)
                     try:
                         mass = float(row["exact_molecular_weight"])
                     except Exception:
