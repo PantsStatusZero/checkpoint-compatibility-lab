@@ -17,7 +17,7 @@ from pathlib import Path
 
 import requests
 
-BUILDER_VERSION = "PUBLIC-CANDIDATE-MASS-INDEX-v1.5"
+BUILDER_VERSION = "PUBLIC-CANDIDATE-MASS-INDEX-v1.6"
 BIN_WIDTH_DA = 25
 MIN_MASS_DA = 0.0
 MAX_MASS_DA = 1500.0
@@ -36,6 +36,7 @@ COCONUT_URL = (
 )
 COCONUT_SHA256 = "38b8a3a73a40c90239ff4d5b0caf832981fd3029f4c8fc0f43c5011b39461800"
 COCONUT_SOURCE_IDENTITY = "COCONUT_2026_09_FULL_CSV_FROZEN_HASH"
+COCONUT_CSV_FIELD_LIMIT_BYTES = 128 * 1024 * 1024
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -335,6 +336,7 @@ def build_coconut(session: requests.Session, root: Path) -> dict:
                 raise RuntimeError("COCONUT_UNSAFE_ARCHIVE_MEMBER")
             with zf.open(info, "r") as raw:
                 text = io.TextIOWrapper(raw, encoding="utf-8-sig", newline="")
+                csv.field_size_limit(COCONUT_CSV_FIELD_LIMIT_BYTES)
                 reader = csv.DictReader(text)
                 required = {
                     "identifier",
