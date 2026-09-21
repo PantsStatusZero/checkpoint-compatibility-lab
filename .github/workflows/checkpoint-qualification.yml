@@ -1,0 +1,119 @@
+name: checkpoint-qualification
+run-name: checkpoint-qualification
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Build frozen qualification image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build \
+            -t "checkpoint-qualification:\${GITHUB_SHA}" \
+            .
+
+      - name: Freeze execution environment identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/work results/out
+          IMAGE="checkpoint-qualification:\${GITHUB_SHA}"
+          IMAGE_ID="$(docker image inspect "$IMAGE" --format '{{.Id}}')"
+          DOCKERFILE_SHA="$(sha256sum Dockerfile | awk '{print $1}')"
+          docker run --rm --network none --entrypoint sh "$IMAGE" \
+            -lc 'python -m pip freeze | LC_ALL=C sort' \
+            > results/dependency-inventory.txt
+          DEPENDENCY_SHA="$(sha256sum results/dependency-inventory.txt | awk '{print $1}')"
+          {
+            echo "QUAL_IMAGE=$IMAGE"
+            echo "QUAL_IMAGE_ID=$IMAGE_ID"
+            echo "QUAL_DOCKERFILE_SHA=$DOCKERFILE_SHA"
+            echo "QUAL_DEPENDENCY_SHA=$DEPENDENCY_SHA"
+          } >> "$GITHUB_ENV"
+
+      - name: Fetch and statically inspect exact public release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE/results/work:/work:rw" \
+            "$QUAL_IMAGE" \
+            --phase fetch-static \
+            --work-dir /work
+
+      - name: Safe load, conversion, and exact equivalence
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --network none \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --read-only \
+            --tmpfs /tmp:rw,nosuid,nodev,noexec,size=128m \
+            -e PYTHONDONTWRITEBYTECODE=1 \
+            -e HOME=/tmp \
+            -e QUALIFICATION_GIT_COMMIT="$GITHUB_SHA" \
+            -e QUALIFICATION_CONTAINER_IMAGE_ID="$QUAL_IMAGE_ID" \
+            -e QUALIFICATION_CONTAINER_DEFINITION_SHA256="$QUAL_DOCKERFILE_SHA" \
+            -e QUALIFICATION_DEPENDENCY_INVENTORY_SHA256="$QUAL_DEPENDENCY_SHA" \
+            -v "$GITHUB_WORKSPACE/results/work:/work:ro" \
+            -v "$GITHUB_WORKSPACE/results/out:/out:rw" \
+            "$QUAL_IMAGE" \
+            --phase safe-reproduce \
+            --work-dir /work \
+            --out /out/qualification-receipt.json
+
+      - name: Assert qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          p=json.load(open("results/out/qualification-receipt.json"))
+          assert p["state"] == "PASS", p
+          assert p["security_state"] == "SECURITY_REPRODUCTION_PASS", p
+          assert p["runtime_checkpoint_policy"] == "SAFETENSORS_ONLY", p
+          iso=p["isolation"]
+          assert iso["credential_env_count"] == 0, p
+          assert iso["network_guard_pass"] is True, p
+          assert iso["subprocess_guard_installed"] is True, p
+          assert iso["linux_cap_eff"] == "0000000000000000", p
+          assert iso["no_new_privileges"] is True, p
+          assert iso["read_only_root_filesystem"] is True, p
+          assert iso["non_loopback_route_count"] == 0, p
+          eq=p["equivalence"]
+          assert eq["exact_tensor_digest_match"] is True, p
+          assert eq["all_fixture_equivalence"] is True, p
+          assert eq["fixture_count"] >= 3, p
+          assert eq["tie_fixture_verified"] is True, p
+          assert all(
+              row["rank_original"] == row["rank_converted"]
+              for row in eq["fixtures"]
+          ), p
+          print("QUALIFICATION_PASS")
+          print("RECEIPT_SHA256=" + p["receipt_sha256"])
+          print("SAFE_ASSET_DIGESTS=" + json.dumps(
+              {k:v["sha256"] for k,v in p["safe_runtime_assets"].items()},
+              sort_keys=True
+          ))
+          PY
+
+      - name: Remove original checkpoint bytes
+        if: always()
+        shell: bash
+        run: rm -rf results/work
