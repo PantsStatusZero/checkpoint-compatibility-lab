@@ -1,0 +1,108 @@
+name: Encrypted candidate index materialization transport
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "keys/candidate-index-materialization-public.pem"
+      - "tools/materialize_encrypted_candidate_index.py"
+      - ".github/workflows/candidate-index-encrypted-transport.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  envelope:
+    name: Rebuild accepted index and emit ciphertext-only envelope
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install public-source and envelope dependencies
+        run: pip install "requests==2.32.5" "cryptography==46.0.2"
+      - name: Rebuild and encrypt the accepted index
+        run: python tools/materialize_encrypted_candidate_index.py
+      - name: Upload envelope manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-index-envelope-manifest
+          path: materialization-envelope/manifest.json
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Upload ciphertext chunk 000
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-index-envelope-000
+          path: materialization-envelope/chunks/cipher-000.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Upload ciphertext chunk 001
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-index-envelope-001
+          path: materialization-envelope/chunks/cipher-001.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Upload ciphertext chunk 002
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-index-envelope-002
+          path: materialization-envelope/chunks/cipher-002.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Upload ciphertext chunk 003
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-index-envelope-003
+          path: materialization-envelope/chunks/cipher-003.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Upload ciphertext chunk 004
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-index-envelope-004
+          path: materialization-envelope/chunks/cipher-004.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Upload ciphertext chunk 005
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-index-envelope-005
+          path: materialization-envelope/chunks/cipher-005.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Upload ciphertext chunk 006
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-index-envelope-006
+          path: materialization-envelope/chunks/cipher-006.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Upload ciphertext chunk 007
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-index-envelope-007
+          path: materialization-envelope/chunks/cipher-007.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Upload ciphertext chunk 008
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-index-envelope-008
+          path: materialization-envelope/chunks/cipher-008.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
