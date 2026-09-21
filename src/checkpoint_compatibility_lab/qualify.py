@@ -452,16 +452,22 @@ def safe_reproduce(work_dir: Path, out_path: Path) -> dict:
     formula_safe = converted_dir / "fiddle_rescore_formula_encoder_qtof.safetensors"
     head_safe = converted_dir / "fiddle_rescore_head_qtof.safetensors"
 
+    # The reviewed model topology intentionally exposes duplicate state-dict
+    # keys for modules referenced both directly and through Sequential
+    # containers. Clone each tensor before serialization so safetensors stores
+    # key-complete values without retaining Python/PyTorch storage aliasing.
+    # Exact key/value digest and output/rank equivalence below must still match.
+
     save_file(
-        {k: v.detach().cpu().contiguous() for k, v in predictor_state.items()},
+        {k: v.detach().cpu().contiguous().clone() for k, v in predictor_state.items()},
         predictor_safe,
     )
     save_file(
-        {k: v.detach().cpu().contiguous() for k, v in formula_state.items()},
+        {k: v.detach().cpu().contiguous().clone() for k, v in formula_state.items()},
         formula_safe,
     )
     save_file(
-        {k: v.detach().cpu().contiguous() for k, v in head_state.items()},
+        {k: v.detach().cpu().contiguous().clone() for k, v in head_state.items()},
         head_safe,
     )
 
