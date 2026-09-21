@@ -1,0 +1,11 @@
+Checkpoint Compatibility Lab
+
+This product includes checkpoint-compatibility topology derived from the public
+FIDDLE project (https://github.com/josiehong/FIDDLE), which is distributed
+under the Apache License, Version 2.0.
+
+FIDDLE copyright notice:
+Copyright 2024 Yuhui Hong
+
+The compatibility code in this repository is limited to software security,
+serialization, and deterministic model-compatibility qualification.
