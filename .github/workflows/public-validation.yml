@@ -1,0 +1,82 @@
+name: Public validation and source freeze
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/casmi_metric_parity.py"
+      - "tools/public_snapshot_freeze.py"
+      - ".github/workflows/public-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e00-parity:
+    name: E00 public metric parity / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install exact evaluator environment
+        run: |
+          python -m pip install --upgrade pip
+          pip install "rdkit==2026.3.3" "requests==2.32.5"
+      - name: Execute differential parity matrix
+        run: python tools/casmi_metric_parity.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e00-parity-py${{ matrix.python-version }}
+          path: |
+            results/e00-parity-receipt.json
+            results/official-kaggle-kernel-pull.bin
+          if-no-files-found: warn
+
+  e01d-coconut:
+    name: E01-D public COCONUT freeze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "requests==2.32.5"
+      - name: Acquire, hash, inspect and freeze COCONUT snapshot identity
+        env:
+          SNAPSHOT_MODE: coconut
+        run: python tools/public_snapshot_freeze.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e01d-coconut-snapshot-receipt
+          path: results/e01d-coconut-snapshot-receipt.json
+          if-no-files-found: error
+
+  e01d-pubchem:
+    name: E01-D public PubChem Extras freeze
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "requests==2.32.5"
+      - name: Stream, hash and inspect coordinated PubChem Extras file set
+        env:
+          SNAPSHOT_MODE: pubchem
+        run: python tools/public_snapshot_freeze.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e01d-pubchem-snapshot-receipt
+          path: results/e01d-pubchem-snapshot-receipt.json
+          if-no-files-found: error
