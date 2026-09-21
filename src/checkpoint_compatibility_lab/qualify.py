@@ -383,12 +383,21 @@ def _safe_load(path: Path):
     }
     safe_objects = [reviewed_objects[name] for name in scanner_globals]
 
-    dtype_class = type(np.dtype(np.float32))
-    if dtype_class not in safe_objects:
-        safe_objects.append(dtype_class)
-    if hasattr(np, "dtypes") and hasattr(np.dtypes, "Float32DType"):
-        if np.dtypes.Float32DType not in safe_objects:
-            safe_objects.append(np.dtypes.Float32DType)
+    # The actual v2.0.0 checkpoints reconstruct NumPy float dtype classes
+    # dynamically through numpy.dtype. Review and allow only the observed
+    # float32/float64 dtype classes rather than all NumPy dtype types.
+    for scalar_type in (np.float32, np.float64):
+        dtype_class = type(np.dtype(scalar_type))
+        if dtype_class not in safe_objects:
+            safe_objects.append(dtype_class)
+
+    runtime_safe_global_types = sorted(
+        {
+            f"{obj.__module__}.{obj.__qualname__}"
+            for obj in safe_objects
+            if hasattr(obj, "__module__") and hasattr(obj, "__qualname__")
+        }
+    )
 
     with torch.serialization.safe_globals(safe_objects):
         payload = torch.load(path, map_location="cpu", weights_only=True)
@@ -396,6 +405,7 @@ def _safe_load(path: Path):
     return payload, {
         "scanner_globals": scanner_globals,
         "approved_globals": sorted(set(scanner_globals)),
+        "runtime_safe_global_types": runtime_safe_global_types,
         "unexpected_globals": unexpected,
     }
 
