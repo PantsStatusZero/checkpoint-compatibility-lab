@@ -17,7 +17,7 @@ from pathlib import Path
 
 import requests
 
-BUILDER_VERSION = "PUBLIC-CANDIDATE-MASS-INDEX-v1.2"
+BUILDER_VERSION = "PUBLIC-CANDIDATE-MASS-INDEX-v1.3"
 BIN_WIDTH_DA = 25
 MIN_MASS_DA = 0.0
 MAX_MASS_DA = 1500.0
@@ -121,7 +121,7 @@ class GzipTSVStream:
 
 
 class MassBucketWriter:
-    BUFFER_BYTES = 1024 * 1024
+    BUFFER_BYTES = 4 * 1024 * 1024
 
     def __init__(self, root: Path, source: str):
         self.root = root / source.lower()
@@ -139,7 +139,7 @@ class MassBucketWriter:
             return
         path = self.root / f"mass-{bucket:04d}-{bucket + BIN_WIDTH_DA:04d}.tsv.gz"
         raw = path.open("wb")
-        gz = gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=6, mtime=0)
+        gz = gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=1, mtime=0)
         self.handles[bucket] = (raw, gz)
         self.buffers[bucket] = bytearray()
         self.stats[bucket] = {
@@ -229,7 +229,6 @@ def build_pubchem(session: requests.Session, root: Path) -> dict:
         smiles = s.fields[0] if s.fields else ""
         formula = m.fields[0] if len(m.fields) >= 1 else ""
         mono_text = m.fields[1] if len(m.fields) >= 2 else ""
-        accurate_text = m.fields[2] if len(m.fields) >= 3 else ""
         try:
             mono = float(mono_text)
         except Exception:
@@ -246,7 +245,6 @@ def build_pubchem(session: requests.Session, root: Path) -> dict:
                     mono_text,
                     formula,
                     smiles,
-                    accurate_text,
                 ],
             )
             emitted += 1
@@ -274,7 +272,7 @@ def build_pubchem(session: requests.Session, root: Path) -> dict:
         "source_identity": PUBCHEM_SOURCE_IDENTITY,
         "builder_version": BUILDER_VERSION,
         "format": "MASS_BUCKET_TSV_GZIP_V1",
-        "fields": ["cid", "monoisotopic_mass", "formula", "smiles", "accurate_mass"],
+        "fields": ["cid", "monoisotopic_mass", "formula", "smiles"],
         "mass_range_da": [MIN_MASS_DA, MAX_MASS_DA],
         "bin_width_da": BIN_WIDTH_DA,
         "source_verification": {
