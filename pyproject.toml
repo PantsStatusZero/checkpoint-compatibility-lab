@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "checkpoint-compatibility-lab"
+version = "0.1.0"
+description = "Bounded public checkpoint security and compatibility qualification"
+requires-python = ">=3.11"
+dependencies = [
+  "requests==2.34.2",
+  "safetensors==0.7.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
