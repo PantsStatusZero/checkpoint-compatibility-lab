@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: public-candidate-index-build
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Frozen PubChem + COCONUT candidate index
