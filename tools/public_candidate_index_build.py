@@ -17,7 +17,7 @@ from pathlib import Path
 
 import requests
 
-BUILDER_VERSION = "PUBLIC-CANDIDATE-MASS-INDEX-v1.1"
+BUILDER_VERSION = "PUBLIC-CANDIDATE-MASS-INDEX-v1.2"
 BIN_WIDTH_DA = 25
 MIN_MASS_DA = 0.0
 MAX_MASS_DA = 1500.0
@@ -34,7 +34,7 @@ COCONUT_URL = (
     "coconut_csv-09-2026.zip"
 )
 COCONUT_SHA256 = "38b8a3a73a40c90239ff4d5b0caf832981fd3029f4c8fc0f43c5011b39461800"
-COCONUT_SNAPSHOT_ID = "snap-b7395aae823734fa463debcc"
+COCONUT_SOURCE_IDENTITY = "COCONUT_2026_09_FULL_CSV_FROZEN_HASH"
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -271,7 +271,7 @@ def build_pubchem(session: requests.Session, root: Path) -> dict:
 
     return {
         "source": "PUBCHEM",
-        "snapshot_id": PUBCHEM_SNAPSHOT_ID,
+        "source_identity": PUBCHEM_SOURCE_IDENTITY,
         "builder_version": BUILDER_VERSION,
         "format": "MASS_BUCKET_TSV_GZIP_V1",
         "fields": ["cid", "monoisotopic_mass", "formula", "smiles", "accurate_mass"],
@@ -381,7 +381,7 @@ def build_coconut(session: requests.Session, root: Path) -> dict:
     shards = writer.close()
     return {
         "source": "COCONUT",
-        "snapshot_id": COCONUT_SNAPSHOT_ID,
+        "source_identity": COCONUT_SOURCE_IDENTITY,
         "builder_version": BUILDER_VERSION,
         "format": "MASS_BUCKET_TSV_GZIP_V1",
         "fields": [
@@ -497,12 +497,12 @@ def main() -> int:
         "sources": [
             {
                 "source": pubchem["source"],
-                "snapshot_id": pubchem["snapshot_id"],
+                "source_identity": pubchem["source_identity"],
                 "logical_index_sha256": pubchem["logical_index_sha256"],
             },
             {
                 "source": coconut["source"],
-                "snapshot_id": coconut["snapshot_id"],
+                "source_identity": coconut["source_identity"],
                 "logical_index_sha256": coconut["logical_index_sha256"],
             },
         ],
