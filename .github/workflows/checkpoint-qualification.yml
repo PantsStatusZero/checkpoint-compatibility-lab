@@ -137,6 +137,19 @@ jobs:
           ))
           PY
 
+      - name: Publish qualification receipt and safe runtime assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qualification-pass
+          path: |
+            results/out/qualification-receipt.json
+            results/out/environment-manifest.json
+            results/out/converted/*.safetensors
+            results/dependency-inventory.txt
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
       - name: Remove original checkpoint bytes and isolated volumes
         if: always()
         shell: bash
