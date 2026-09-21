@@ -61,7 +61,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker run --rm \
+          docker volume create qualification-work >/dev/null
+          docker volume create qualification-out >/dev/null
+
+          docker create \
+            --name qualification-seed \
+            -v qualification-work:/work \
+            --entrypoint sh \
+            "$QUAL_IMAGE" \
+            -c 'true'
+          docker cp results/work/. qualification-seed:/work/
+          docker rm qualification-seed
+
+          docker run --name qualification-safe \
             --network none \
             --cap-drop ALL \
             --security-opt no-new-privileges \
@@ -73,12 +85,22 @@ jobs:
             -e QUALIFICATION_CONTAINER_IMAGE_ID="$QUAL_IMAGE_ID" \
             -e QUALIFICATION_CONTAINER_DEFINITION_SHA256="$QUAL_DOCKERFILE_SHA" \
             -e QUALIFICATION_DEPENDENCY_INVENTORY_SHA256="$QUAL_DEPENDENCY_SHA" \
-            -v "$GITHUB_WORKSPACE/results/work:/work:ro" \
-            -v "$GITHUB_WORKSPACE/results/out:/out:rw" \
+            -v qualification-work:/work:ro \
+            -v qualification-out:/out \
             "$QUAL_IMAGE" \
             --phase safe-reproduce \
             --work-dir /work \
             --out /out/qualification-receipt.json
+          docker rm qualification-safe
+
+          docker create \
+            --name qualification-reader \
+            -v qualification-out:/out \
+            --entrypoint sh \
+            "$QUAL_IMAGE" \
+            -c 'true'
+          docker cp qualification-reader:/out/. results/out/
+          docker rm qualification-reader
 
       - name: Assert qualification receipt
         shell: bash
@@ -115,7 +137,10 @@ jobs:
           ))
           PY
 
-      - name: Remove original checkpoint bytes
+      - name: Remove original checkpoint bytes and isolated volumes
         if: always()
         shell: bash
-        run: rm -rf results/work
+        run: |
+          docker rm -f qualification-seed qualification-safe qualification-reader >/dev/null 2>&1 || true
+          docker volume rm qualification-work qualification-out >/dev/null 2>&1 || true
+          rm -rf results/work
