@@ -1,0 +1,27 @@
+name: PubChem Key14 evaluator proxy validation
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/pubchem_key14_proxy_validation.py"
+      - ".github/workflows/pubchem-key14-proxy.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "requests==2.32.5" "rdkit==2026.3.3"
+      - run: python tools/pubchem_key14_proxy_validation.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pubchem-key14-proxy-validation
+          path: results/pubchem-key14-proxy-validation.json
+          if-no-files-found: error
