@@ -1,0 +1,84 @@
+name: Encrypted PubChem Key14 mass sidecars
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/pubchem_key14_mass_sidecars.py"
+      - ".github/workflows/pubchem-key14-sidecars.yml"
+      - "keys/candidate-index-materialization-public.pem"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "requests==2.32.5" "cryptography==46.0.2"
+      - run: python tools/pubchem_key14_mass_sidecars.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pubchem-key14-sidecar-manifest
+          path: sidecar-envelope/manifest.json
+          compression-level: 0
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pubchem-key14-sidecar-000
+          path: sidecar-envelope/chunks/cipher-000.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pubchem-key14-sidecar-001
+          path: sidecar-envelope/chunks/cipher-001.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pubchem-key14-sidecar-002
+          path: sidecar-envelope/chunks/cipher-002.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pubchem-key14-sidecar-003
+          path: sidecar-envelope/chunks/cipher-003.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pubchem-key14-sidecar-004
+          path: sidecar-envelope/chunks/cipher-004.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pubchem-key14-sidecar-005
+          path: sidecar-envelope/chunks/cipher-005.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pubchem-key14-sidecar-006
+          path: sidecar-envelope/chunks/cipher-006.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pubchem-key14-sidecar-007
+          path: sidecar-envelope/chunks/cipher-007.bin
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: ignore
