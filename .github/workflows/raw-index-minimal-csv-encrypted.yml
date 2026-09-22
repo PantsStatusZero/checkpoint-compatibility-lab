@@ -1,0 +1,32 @@
+name: Encrypted public raw-index minimal CSV transport
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/export_raw_index_minimal_csv_encrypted.py"
+      - ".github/workflows/raw-index-minimal-csv-encrypted.yml"
+      - "keys/candidate-index-materialization-public.pem"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "requests==2.32.5" "pyarrow==21.0.0" "cryptography==46.0.2"
+      - run: python tools/export_raw_index_minimal_csv_encrypted.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: raw-index-minimal-csv-envelope
+          path: |
+            results/raw-index-minimal-csv.cipher
+            results/raw-index-minimal-csv-manifest.json
+          compression-level: 0
+          retention-days: 1
