@@ -1,0 +1,28 @@
+name: E01-CORE exact-index microprofile
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/e01_core_microprofile.py"
+      - ".github/workflows/e01-core-microprofile.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "requests==2.32.5"
+      - run: python tools/e01_core_microprofile.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e01-core-microprofile
+          path: results/e01-core-microprofile.json
+          retention-days: 30
+          if-no-files-found: error
