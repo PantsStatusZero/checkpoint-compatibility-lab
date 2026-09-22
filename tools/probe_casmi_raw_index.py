@@ -21,6 +21,11 @@ for url in urls:
                     {k:f.get(k) for k in ("name","totalBytes","creationDate","ref","url")}
                     for f in data["datasetFiles"]
                 ]
+            if "files" in data:
+                row["files"]=[
+                    {k:item.get(k) for k in ("name","totalBytes","creationDate","ref","url")}
+                    for item in data["files"]
+                ]
             row["title"]=data.get("title")
             row["ref"]=data.get("ref")
             row["licenseName"]=data.get("licenseName")
