@@ -17,7 +17,7 @@ from pathlib import Path
 
 import requests
 
-BUILDER_VERSION = "PUBLIC-CANDIDATE-MASS-INDEX-v1.6"
+BUILDER_VERSION = "PUBLIC-CANDIDATE-MASS-INDEX-v1.7"
 BIN_WIDTH_DA = 25
 MIN_MASS_DA = 0.0
 MAX_MASS_DA = 1500.0
@@ -25,16 +25,16 @@ CHUNK = 4 * 1024 * 1024
 
 PUBCHEM_SMILES_URL = "https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/CID-SMILES.gz"
 PUBCHEM_MASS_URL = "https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/CID-Mass.gz"
-PUBCHEM_SMILES_SHA256 = "abedf7b9709e98a1de9af5e3bea20d839c9953b5862157e6a6aafe55e15eb8c9"
-PUBCHEM_MASS_SHA256 = "fd81bc739efb0d574df29188068ee9a9b29552d2d3167e71eda7984b9c6a545b"
-PUBCHEM_SNAPSHOT_ID = "snap-3e0cea6b6f6f2f9b21603519"
-PUBCHEM_SOURCE_IDENTITY = "PUBCHEM_EXTRAS_CID_SMILES_AND_MASS_FROZEN_HASHES"
+PUBCHEM_SMILES_SHA256 = "a54f09282b0a4cf0bee5dad29241c1b690134f2b9c157a8a4e557247b616bbcf"
+PUBCHEM_MASS_SHA256 = "0792f62a2788dadf97c142dffb9f1fcec22646f49a5dbb4de9b223d9587119a2"
+PUBCHEM_SNAPSHOT_ID = "snap-4c8714e6fab79ebdf0247dc4"
+PUBCHEM_SOURCE_IDENTITY = "PUBCHEM_EXTRAS_CID_SMILES_AND_MASS_2026_09_26_FROZEN_HASHES"
 
 COCONUT_URL = (
     "https://coconut.s3.uni-jena.de/prod/downloads/2026-09/"
     "coconut_csv-09-2026.zip"
 )
-COCONUT_SHA256 = "38b8a3a73a40c90239ff4d5b0caf832981fd3029f4c8fc0f43c5011b39461800"
+COCONUT_SHA256 = "38b8a3a73a40c90239ff4d5b0caf832981fd3029f4c8fc0f43c5011b39461800"\nCOCONUT_SNAPSHOT_ID = "snap-b7395aae823734fa463debcc"
 COCONUT_SOURCE_IDENTITY = "COCONUT_2026_09_FULL_CSV_FROZEN_HASH"
 COCONUT_CSV_FIELD_LIMIT_BYTES = 128 * 1024 * 1024
 
@@ -272,6 +272,7 @@ def build_pubchem(session: requests.Session, root: Path) -> dict:
     return {
         "source": "PUBCHEM",
         "source_identity": PUBCHEM_SOURCE_IDENTITY,
+        "source_snapshot_id": PUBCHEM_SNAPSHOT_ID,
         "builder_version": BUILDER_VERSION,
         "format": "MASS_BUCKET_TSV_GZIP_V1",
         "fields": ["cid", "monoisotopic_mass", "formula", "smiles"],
@@ -383,6 +384,7 @@ def build_coconut(session: requests.Session, root: Path) -> dict:
     return {
         "source": "COCONUT",
         "source_identity": COCONUT_SOURCE_IDENTITY,
+        "source_snapshot_id": COCONUT_SNAPSHOT_ID,
         "builder_version": BUILDER_VERSION,
         "format": "MASS_BUCKET_TSV_GZIP_V1",
         "fields": [
@@ -499,11 +501,13 @@ def main() -> int:
             {
                 "source": pubchem["source"],
                 "source_identity": pubchem["source_identity"],
+                "source_snapshot_id": pubchem["source_snapshot_id"],
                 "logical_index_sha256": pubchem["logical_index_sha256"],
             },
             {
                 "source": coconut["source"],
                 "source_identity": coconut["source_identity"],
+                "source_snapshot_id": coconut["source_snapshot_id"],
                 "logical_index_sha256": coconut["logical_index_sha256"],
             },
         ],
@@ -524,6 +528,7 @@ def main() -> int:
             "formula_filter": "exact formula comparison inside selected mass buckets",
             "evaluator_identity_dedup": "query-time exact RDKit official-scorer identity; not precomputed over full source universe",
             "provenance_key": "source snapshot id + source record id",
+            "index_identity_binds_source_snapshot_ids": True,
             "production_rights_inferred": False,
         },
         "sources": [pubchem, coconut],
