@@ -1,0 +1,79 @@
+name: WR-02 successor source ciphertext transport
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "keys/wr02-successor-snapshot-public.pem"
+      - "tools/wr02_encrypt_successor_sources.py"
+      - ".github/workflows/wr02-successor-source-transport.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wr02-successor-source-transport
+  cancel-in-progress: false
+
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "requests==2.32.5" "cryptography==46.0.2"
+
+      - name: Encrypt CID-SMILES
+        run: python tools/wr02_encrypt_successor_sources.py encrypt --name CID-SMILES.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wr02-source-CID-SMILES
+          path: wr02-successor-transport/CID_SMILES_gz.cipher
+          compression-level: 0
+          retention-days: 1
+      - run: rm wr02-successor-transport/CID_SMILES_gz.cipher
+
+      - name: Encrypt CID-InChI-Key
+        run: python tools/wr02_encrypt_successor_sources.py encrypt --name CID-InChI-Key.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wr02-source-CID-InChI-Key
+          path: wr02-successor-transport/CID_InChI_Key_gz.cipher
+          compression-level: 0
+          retention-days: 1
+      - run: rm wr02-successor-transport/CID_InChI_Key_gz.cipher
+
+      - name: Encrypt CID-Mass
+        run: python tools/wr02_encrypt_successor_sources.py encrypt --name CID-Mass.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wr02-source-CID-Mass
+          path: wr02-successor-transport/CID_Mass_gz.cipher
+          compression-level: 0
+          retention-days: 1
+      - run: rm wr02-successor-transport/CID_Mass_gz.cipher
+
+      - name: Encrypt COCONUT
+        run: python tools/wr02_encrypt_successor_sources.py encrypt --name coconut_csv-09-2026.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wr02-source-COCONUT
+          path: wr02-successor-transport/coconut_csv_09_2026_zip.cipher
+          compression-level: 0
+          retention-days: 1
+      - run: rm wr02-successor-transport/coconut_csv_09_2026_zip.cipher
+
+      - name: Assemble transport manifest
+        run: python tools/wr02_encrypt_successor_sources.py assemble
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wr02-source-transport-manifest
+          path: |
+            wr02-successor-transport/manifest.json
+            wr02-successor-transport/meta/*.json
+          compression-level: 0
+          retention-days: 1
