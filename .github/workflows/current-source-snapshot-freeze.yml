@@ -1,0 +1,59 @@
+name: Current public-source snapshot freeze
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/public_snapshot_freeze.py"
+      - ".github/workflows/current-source-snapshot-freeze.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: current-public-source-snapshot-freeze
+  cancel-in-progress: false
+
+jobs:
+  pubchem:
+    name: Hash current PubChem source set
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      SNAPSHOT_MODE: pubchem
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "requests==2.32.5"
+      - run: python tools/public_snapshot_freeze.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: current-pubchem-snapshot-receipt
+          path: results/e01d-pubchem-snapshot-receipt.json
+          retention-days: 30
+          if-no-files-found: error
+
+  coconut:
+    name: Re-verify current COCONUT source
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      SNAPSHOT_MODE: coconut
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "requests==2.32.5"
+      - run: python tools/public_snapshot_freeze.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: current-coconut-snapshot-receipt
+          path: results/e01d-coconut-snapshot-receipt.json
+          retention-days: 30
+          if-no-files-found: error
